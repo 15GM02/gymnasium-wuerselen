@@ -41,9 +41,29 @@
     </div>
 
     <div id="adminPanel">
-        <h3>Aktuelles Spiel auswählen</h3>
-        <div id="adminButtons"></div>
+    <h3>Admin-Konsole</h3>
+    
+    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <p>Ergebnisse für Spiel <span id="adminCurrentNr">0</span>:</p>
+        
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
+            <span>Spiel A:</span>
+            <input type="number" id="resA1" placeholder="0" style="width: 40px;"> : 
+            <input type="number" id="resA2" placeholder="0" style="width: 40px;">
+        </div>
+        
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+            <span>Spiel B:</span>
+            <input type="number" id="resB1" placeholder="0" style="width: 40px;"> : 
+            <input type="number" id="resB2" placeholder="0" style="width: 40px;">
+        </div>
+        
+        <button class="admin-button" id="saveResultsBtn" style="background: #28a745; color: white;">Ergebnisse & Nächstes Spiel</button>
     </div>
+
+    <h4>Spiel auswählen (ohne Speichern):</h4>
+    <div id="adminButtons"></div>
+</div>
 
     <div class="grid">
         <div class="card"><div class="card-header">Turnier 1</div><div class="card-body"><div class="card-body-title">Stufe 5 & 6<br>männlich</div><a href="https://tournifyapp.com/live/fubanatu2026-stufe-5-6-maennlich" target="_blank">Öffnen</a></div></div>

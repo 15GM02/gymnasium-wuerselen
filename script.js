@@ -24,6 +24,7 @@ const spiele = {
 };
 
 let currentSpielGlobal = 0;
+let alleErgebnisse = {}; // Hier speichern wir lokal alle Ergebnisse aus Firebase
 let pastVisible = 4;
 let futureVisible = 4;
 
@@ -126,6 +127,29 @@ function initAdmin() {
     leerBtn.className = "admin-button";
     leerBtn.onclick = () => setSpiel(0);
     adminButtons.appendChild(leerBtn);
+
+    document.getElementById("saveResultsBtn").onclick = () => {
+    const nr = currentSpielGlobal;
+    const resA = document.getElementById("resA1").value + ":" + document.getElementById("resA2").value;
+    const resB = document.getElementById("resB1").value + ":" + document.getElementById("resB2").value;
+
+    if (nr > 0) {
+        // 1. Ergebnisse speichern
+        set(ref(db, "ergebnisse/" + nr), {
+            a: resA,
+            b: resB
+        });
+
+        // 2. Zum nächsten Spiel springen
+        set(ref(db, "aktuellesSpiel"), nr + 1);
+        
+        // Felder leeren
+        document.getElementById("resA1").value = "";
+        document.getElementById("resA2").value = "";
+        document.getElementById("resB1").value = "";
+        document.getElementById("resB2").value = "";
+    }
+};
 }
 
 function setSpiel(nr) {
@@ -139,6 +163,22 @@ onValue(ref(db, "aktuellesSpiel"), (snapshot) => {
     currentSpielGlobal = nr;
     pastVisible = 2;
     futureVisible = 2;
+    updateLiveSpiel(nr);
+    updateSideGames(nr);
+});
+
+onValue(ref(db, "ergebnisse"), (snapshot) => {
+    alleErgebnisse = snapshot.val() || {};
+    updateSideGames(currentSpielGlobal); // Liste neu zeichnen, wenn Ergebnisse kommen
+});
+
+// Update der Anzeige im Admin Panel
+onValue(ref(db, "aktuellesSpiel"), (snapshot) => {
+    const nr = snapshot.val();
+    currentSpielGlobal = nr;
+    if(document.getElementById("adminCurrentNr")) {
+        document.getElementById("adminCurrentNr").textContent = nr;
+    }
     updateLiveSpiel(nr);
     updateSideGames(nr);
 });
@@ -165,12 +205,19 @@ function renderPast(past, current) {
     if (past.length === 0) { wrapper.style.display = "none"; return; }
     wrapper.style.display = "block";
     container.innerHTML = "";
-    past.slice(-pastVisible).forEach(nr => {
-        const div = document.createElement("div");
-        div.className = "game-line";
-        div.innerHTML = `Spiel ${nr}<br>${spiele[nr]}`;
-        container.appendChild(div);
-    });
+    past.slice(-pastVisible).reverse().forEach(nr => { // .reverse() damit das aktuellste oben steht
+    const div = document.createElement("div");
+    div.className = "game-line";
+    
+    // Prüfen ob Ergebnisse vorliegen
+    let ergHTML = "";
+    if (alleErgebnisse[nr]) {
+        ergHTML = `<div class="result-line">Ergebnis: ${alleErgebnisse[nr].a} | ${alleErgebnisse[nr].b}</div>`;
+    }
+
+    div.innerHTML = `Spiel ${nr}<br>${spiele[nr]} ${ergHTML}`;
+    container.appendChild(div);
+});
     
     moreBtn.style.display = pastVisible < past.length ? "inline-block" : "none";
     moreBtn.onclick = () => { pastVisible += 4; updateSideGames(current); };
