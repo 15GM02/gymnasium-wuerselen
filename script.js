@@ -1,6 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
 
+// Verhindert, dass der Browser die Scroll-Position beim Neuladen wiederherstellt
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+
+// Erzwingt das Scrollen nach oben beim Laden der Seite
+window.scrollTo(0, 0);
+
 // --- FIREBASE KONFIGURATION ---
 const firebaseConfig = {
     apiKey: "AIzaSyDbviwxqQ-SITuT-5MiqanxKGLM11oPULA",
@@ -267,12 +275,18 @@ function renderPast(past, current) {
     }
 
     // 6. Klick-Events (direkt in der Funktion definiert)
+    // Klicks für Mehr anzeigen
     moreBtn.onclick = () => {
         pastVisible += 4;
         updateSideGames(current);
-        // Optional: Kleiner Scroll-Effekt nach unten
+        
+        // Kurze Verzögerung, damit das DOM Zeit hat, die neuen Elemente zu rendern
         setTimeout(() => {
-            window.scrollBy({ top: 150, behavior: 'smooth' });
+            const wrapper = document.getElementById("pastWrapper");
+            wrapper.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' // Scrollt so, dass der Anfang des Bereichs oben im Bild ist
+            });
         }, 50);
     };
 
