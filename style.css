@@ -425,3 +425,13 @@ h2.subtitle {
     50% { opacity: 0.4; transform: scale(0.8); }
     100% { opacity: 1; transform: scale(1); }
 }
+
+
+/* Das Innere der Box (deckt das Licht in der Mitte ab) */
+.live-content-wrapper {
+    background: #3414fc; /* Dein Original-Blau */
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    z-index: 2;
+}

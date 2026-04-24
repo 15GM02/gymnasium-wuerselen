@@ -210,7 +210,7 @@ function updateLiveSpiel(nr) {
 
     container.style.display = "block";
 
-    // 2. Inhalt setzen: Wir ersetzen das rote Emoji durch den animierten Punkt
+    // 2. Inhalt setzen mit pulsierendem Punkt und Profi-Layout
     if (spiele[nr]) {
         box.innerHTML = `
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; letter-spacing: 2px; display: flex; align-items: center; justify-content: center;">
@@ -221,7 +221,7 @@ function updateLiveSpiel(nr) {
             </div>
         `;
     } else {
-        // Fallback-Text
+        // Fallback-Text, falls für die Nummer kein Spiel im Objekt 'spiele' ist
         box.innerHTML = `
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; letter-spacing: 2px; display: flex; align-items: center; justify-content: center;">
                 <span class="live-indicator"></span> LIVE
