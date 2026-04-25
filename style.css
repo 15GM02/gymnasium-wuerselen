@@ -374,7 +374,7 @@ h2.subtitle {
 .live-box {
     background: #3414fc;
     color: white;
-    padding: 7px;
+    padding: 10px;
     text-align: center;
     font-family: 'FranklinLight', Arial, sans-serif;
     margin: 15px auto;
@@ -431,7 +431,7 @@ h2.subtitle {
 .live-content-wrapper {
     background: #3414fc; /* Dein Original-Blau */
     border-radius: 12px;
-    padding: 20px;
+    padding: 6px;
     position: relative;
     z-index: 2;
 }
