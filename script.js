@@ -213,7 +213,7 @@ function updateLiveSpiel(nr) {
     // 2. Inhalt setzen mit pulsierendem Punkt und Profi-Layout
     if (spiele[nr]) {
         box.innerHTML = `
-            <div style="font-size: 11px; font-weight: bold; margin-bottom: 2px; letter-spacing: 2px; display: flex; align-items: center; justify-content: center; opacity: 0.9;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px; letter-spacing: 2px; display: flex; align-items: center; justify-content: center;">
                 <span class="live-indicator"></span> AKTUELLE SPIELE
             </div>
             <div style="font-size: 20px; font-weight: bold; line-height: 1.4;">
