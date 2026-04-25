@@ -24,9 +24,9 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 // --- GLOBALE VARIABLEN ---
-let spieleDaten = {}; // Hier speichern wir die Daten aus Firebase
-let currentSpielGlobal = 0; // Hilfsvariable für den aktuellen Spielstand
-let alleErgebnisse = {}; // Hier speichern wir lokal alle Ergebnisse aus Firebase
+let spieleDaten = {}; 
+let currentSpielGlobal = 0; 
+let alleErgebnisse = {}; 
 let pastVisible = 4;
 let futureVisible = 4;
 
@@ -41,23 +41,19 @@ window.addEventListener('load', () => {
 
 // --- FIREBASE LISTENERS ---
 
-// 1. Spiele-Liste aus Firebase laden
+// 1. Spiele-Liste laden
 onValue(ref(db, "spiele"), (snapshot) => {
     spieleDaten = snapshot.val() || {};
-    console.log("Spiele erfolgreich geladen:", spieleDaten);
-    
-    // Falls die Seite schon geladen ist, Anzeigen mit den neuen Daten aktualisieren
-    if (currentSpielGlobal > 0) {
-        updateLiveSpiel(currentSpielGlobal);
-        updateSideGames(currentSpielGlobal);
-    }
+    // Listen sofort zeichnen, auch wenn noch kein Spiel läuft!
+    updateSideGames(currentSpielGlobal);
 });
 
-// 2. Aktuelles Spiel aus Firebase laden
+// 2. Aktuelles Spiel laden
 onValue(ref(db, "aktuellesSpiel"), (snapshot) => {
-    const nr = snapshot.val();
+    // Wenn in Firebase noch nichts steht, ist das aktuelle Spiel 0
+    const nr = snapshot.val() || 0; 
     currentSpielGlobal = nr;
-    pastVisible = 2; // Zurücksetzen beim Spielwechsel
+    pastVisible = 2; 
     futureVisible = 2;
     
     if(document.getElementById("adminCurrentNr")) {
@@ -68,10 +64,10 @@ onValue(ref(db, "aktuellesSpiel"), (snapshot) => {
     updateSideGames(nr);
 });
 
-// 3. Ergebnisse aus Firebase laden
+// 3. Ergebnisse laden
 onValue(ref(db, "ergebnisse"), (snapshot) => {
     alleErgebnisse = snapshot.val() || {};
-    updateSideGames(currentSpielGlobal); // Liste neu zeichnen, wenn Ergebnisse kommen
+    updateSideGames(currentSpielGlobal); 
 });
 
 
@@ -205,7 +201,6 @@ function setSpiel(nr) {
 function updateLiveSpiel(nr) {
     const box = document.getElementById("liveText");
     const container = document.getElementById("liveSpiel");
-    currentSpielGlobal = nr;
 
     if (!nr || nr === 0 || !spieleDaten[nr]) { 
         container.style.display = "none"; 
@@ -227,10 +222,10 @@ function updateLiveSpiel(nr) {
 }
 
 function updateSideGames(current) {
-    if (!current || current === 0) return;
-    // Der alte Fehler war hier versteckt. Jetzt übergeben wir einfach die Nummer sauber.
-    renderPast(current);
-    renderFuture(current);
+    // HIER WAR DER FEHLER: Wir verbieten den Abbruch bei Runde 0!
+    const safeCurrent = current || 0; 
+    renderPast(safeCurrent);
+    renderFuture(safeCurrent);
 }
 
 function renderPast(current) {
@@ -277,8 +272,10 @@ function renderPast(current) {
     });
 
     const moreBtn = document.getElementById("pastMoreBtn");
-    moreBtn.style.display = past.length > pastVisible ? "inline-block" : "none";
-    moreBtn.onclick = () => { pastVisible += 5; updateSideGames(current); };
+    if(moreBtn) {
+        moreBtn.style.display = past.length > pastVisible ? "inline-block" : "none";
+        moreBtn.onclick = () => { pastVisible += 5; updateSideGames(current); };
+    }
 
     if (pastVisible > 5) {
         let lessBtn = document.getElementById("pastLessBtn") || createLessBtn("pastLessBtn", moreBtn, true);
@@ -321,14 +318,18 @@ function renderFuture(current) {
     });
 
     const moreBtn = document.getElementById("futureMoreBtn");
-    moreBtn.style.display = future.length > futureVisible ? "inline-block" : "none";
-    moreBtn.onclick = () => { futureVisible += 5; updateSideGames(current); };
+    if(moreBtn) {
+        moreBtn.style.display = future.length > futureVisible ? "inline-block" : "none";
+        moreBtn.onclick = () => { futureVisible += 5; updateSideGames(current); };
+    }
 
     let lessBtn = document.getElementById("futureLessBtn");
     if (futureVisible > 5) {
-        if (!lessBtn) lessBtn = createLessBtn("futureLessBtn", moreBtn);
-        lessBtn.style.display = "inline-block";
-        lessBtn.onclick = () => { futureVisible = 2; updateSideGames(current); scrollToLive(); };
+        if (!lessBtn && moreBtn) lessBtn = createLessBtn("futureLessBtn", moreBtn);
+        if(lessBtn) {
+            lessBtn.style.display = "inline-block";
+            lessBtn.onclick = () => { futureVisible = 2; updateSideGames(current); scrollToLive(); };
+        }
     } else if (lessBtn) {
         lessBtn.style.display = "none";
     }
