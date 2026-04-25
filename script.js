@@ -23,13 +23,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// --- SPIELE DATEN ---
-const spiele = {
-    1: "1 – 1<br>2 - 2", 2: "3 – 3<br>4 - 4", 3: "5 – 5<br>6 - 6", 4: "7 – 7<br>8 - 8", 5: "9 – 9<br>10 - 10",
-    6: "11 – 11<br>12 - 12", 7: "13 – 13<br>14 - 14", 8: "15 – 15<br>16 - 16", 9: "17 – 17<br>18 - 18", 10: "19 – 19<br>20 - 20",
-    11: "21 – 21<br>22 - 22", 12: "23 – 23<br>24 - 24", 13: "25 – 25<br>26 - 26", 14: "27 – 27<br>28 - 28", 15: "29 – 29<br>30 - 30",
-    16: "31 – 31<br>32 - 32", 17: "33 – 33<br>34 - 34", 18: "35 – 35<br>36 - 36", 19: "37 – 37<br>38 - 38", 20: "39 – 39<br>40 - 40"
-};
+// SPIELE-LISTE AUS FIREBASE LADEN
+onValue(ref(db, "spiele"), (snapshot) => {
+    spieleDaten = snapshot.val() || {};
+    console.log("Spiele erfolgreich geladen:", spieleDaten);
+    
+    // Falls die Seite schon geladen ist, Anzeigen mit den neuen Daten aktualisieren
+    if (currentSpielGlobal > 0) {
+        updateLiveSpiel(currentSpielGlobal);
+        updateSideGames(currentSpielGlobal);
+    }
+});
+
+let spieleDaten = {}; // Hier speichern wir die Daten, die wir gleich aus Firebase laden
+let currentSpielGlobal = 0; // Hilfsvariable für den aktuellen Spielstand
 
 let currentSpielGlobal = 0;
 let alleErgebnisse = {}; // Hier speichern wir lokal alle Ergebnisse aus Firebase
@@ -201,36 +208,27 @@ onValue(ref(db, "aktuellesSpiel"), (snapshot) => {
 function updateLiveSpiel(nr) {
     const box = document.getElementById("liveText");
     const container = document.getElementById("liveSpiel");
+    currentSpielGlobal = nr; // Merken, welche Nummer gerade aktuell ist
 
-    // 1. Wenn kein Spiel aktiv ist
-    if (!nr || nr === 0) { 
+    // Wenn kein Spiel läuft oder die Daten noch nicht da sind
+    if (!nr || nr === 0 || !spieleDaten[nr]) { 
         container.style.display = "none"; 
         return; 
     }
 
     container.style.display = "block";
+    const daten = spieleDaten[nr];
 
-    // 2. Inhalt setzen mit pulsierendem Punkt und Profi-Layout
-    if (spiele[nr]) {
-        box.innerHTML = `
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px; letter-spacing: 2px; display: flex; align-items: center; justify-content: center;">
-                <span class="live-indicator"></span> AKTUELLE SPIELE
-            </div>
-            <div style="font-size: 20px; font-weight: bold; line-height: 1.4;">
-                ${spiele[nr]}
-            </div>
-        `;
-    } else {
-        // Fallback-Text, falls für die Nummer kein Spiel im Objekt 'spiele' ist
-        box.innerHTML = `
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; letter-spacing: 2px; display: flex; align-items: center; justify-content: center;">
-                <span class="live-indicator"></span> AKTUELLE SPIELE
-            </div>
-            <div style="font-size: 20px; font-weight: bold;">
-                Aktuelles Spiel: Spiel ${nr}
-            </div>
-        `;
-    }
+    // Hier bauen wir das HTML für die Live-Box
+    box.innerHTML = `
+        <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px; letter-spacing: 2px; display: flex; align-items: center; justify-content: center;">
+            <span class="live-indicator"></span> AKTUELLE SPIELE
+        </div>
+        <div style="text-align: left; display: inline-block; font-size: 18px; line-height: 1.6; font-family: 'FranklinLight', Arial, sans-serif;">
+            <div><span style="font-weight: bold; width: 80px; display: inline-block;">Platz 1:</span> ${daten.p1 || "---"}</div>
+            <div><span style="font-weight: bold; width: 80px; display: inline-block;">Platz 2:</span> ${daten.p2 || "---"}</div>
+        </div>
+    `;
 }
 
 function updateSideGames(current) {
@@ -240,123 +238,101 @@ function updateSideGames(current) {
     renderFuture(keys.filter(k => k > current), current);
 }
 
-function renderPast(past, current) {
-    const wrapper = document.getElementById("pastWrapper");
+function renderPast(current) {
     const container = document.getElementById("pastGames");
-    const moreBtn = document.getElementById("pastMoreBtn");
+    container.innerHTML = "";
+    
+    // Wir filtern alle Spielnummern, die kleiner als die aktuelle sind
+    const past = Object.keys(spieleDaten)
+        .map(Number)
+        .filter(nr => nr < current && nr > 0)
+        .sort((a, b) => b - a); // Neueste beendete Spiele zuerst
 
-    // 1. Wenn keine vergangenen Spiele → ausblenden
     if (past.length === 0) {
-        wrapper.style.display = "none";
+        container.innerHTML = '<div class="game-line" style="opacity:0.5;">Noch keine Spiele beendet.</div>';
         return;
-    } else {
-        wrapper.style.display = "block";
     }
 
-    container.innerHTML = "";
-
-    // 2. Die letzten X Spiele holen (höchste Nummer bleibt unten)
-    const slice = past.slice(-pastVisible);
-
-    slice.forEach(nr => {
+    past.slice(0, pastVisible).forEach(nr => {
+        const daten = spieleDaten[nr] || { p1: "Spiel", p2: "Spiel" };
+        const res = alleErgebnisse[nr] || { a: "-", b: "-" };
+        
         const div = document.createElement("div");
         div.className = "game-line";
+        div.style.textAlign = "left"; // Linksbündig für die Platz-Anzeige
         
-        let displayContent = spiele[nr];
-
-        // 3. Ergebnisse integrieren (falls vorhanden)
-        if (typeof alleErgebnisse !== 'undefined' && alleErgebnisse[nr]) {
-            const lines = spiele[nr].split("<br>");
-            const res = alleErgebnisse[nr];
-            // Format: Team A - Team B [Ergebnis]
-            displayContent = `${lines[0]} <span class="game-res">${res.a}</span><br>${lines[1]} <span class="game-res">${res.b}</span>`;
-        }
-
-        div.innerHTML = `Spiel ${nr}<br>${displayContent}`;
+        div.innerHTML = `
+            <div style="font-size: 11px; opacity: 0.6; margin-bottom: 5px; font-family: Arial;">RUNDE ${nr}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span><b style="width:65px; display:inline-block;">Platz 1:</b> ${daten.p1}</span>
+                <span class="game-res">${res.a}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span><b style="width:65px; display:inline-block;">Platz 2:</b> ${daten.p2}</span>
+                <span class="game-res">${res.b}</span>
+            </div>
+        `;
         container.appendChild(div);
     });
 
-    // 4. "Mehr anzeigen" Logik (wie in renderFuture)
-    if (pastVisible < past.length) {
-        moreBtn.style.display = "inline-block";
-    } else {
-        moreBtn.style.display = "none";
-    }
+    // Button-Logik (Mehr anzeigen)
+    const moreBtn = document.getElementById("pastMoreBtn");
+    moreBtn.style.display = past.length > pastVisible ? "inline-block" : "none";
+    moreBtn.onclick = () => { pastVisible += 5; updateSideGames(current); };
 
-    // 5. "Weniger anzeigen" Logik (dynamisch wie in renderFuture)
-    let lessBtn = document.getElementById("pastLessBtn");
-    if (!lessBtn) {
-        lessBtn = document.createElement("button");
-        lessBtn.id = "pastLessBtn";
-        lessBtn.className = "show-more";
-        lessBtn.textContent = "Weniger anzeigen";
-        // Button nach dem "Mehr anzeigen" Button einfügen
-        moreBtn.parentNode.insertBefore(lessBtn, moreBtn.nextSibling);
-    }
-
-    // Sichtbarkeit des Weniger-Buttons (ab mehr als 3 Spielen)
-    if (pastVisible > 3) {
+    // "Weniger anzeigen" Button falls nötig
+    if (pastVisible > 5) {
+        let lessBtn = document.getElementById("pastLessBtn") || createLessBtn("pastLessBtn", moreBtn, true);
         lessBtn.style.display = "inline-block";
-    } else {
-        lessBtn.style.display = "none";
+        lessBtn.onclick = () => { pastVisible = 2; updateSideGames(current); scrollToLive(); };
+    } else if (document.getElementById("pastLessBtn")) {
+        document.getElementById("pastLessBtn").style.display = "none";
     }
-
-    // 6. Klick-Events (direkt in der Funktion definiert)
-    // Klicks für Mehr anzeigen
-    moreBtn.onclick = () => {
-        pastVisible += 4;
-        updateSideGames(current);
-        
-        // Kurze Verzögerung, damit das DOM Zeit hat, die neuen Elemente zu rendern
-        setTimeout(() => {
-            const wrapper = document.getElementById("pastWrapper");
-            wrapper.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'start' // Scrollt so, dass der Anfang des Bereichs oben im Bild ist
-            });
-        }, 50);
-    };
-
-    lessBtn.onclick = () => {
-        pastVisible = 3; // Zurück auf Standardwert
-        updateSideGames(current);
-        scrollToLive(); // Nutzt deine vorhandene Funktion
-    };
 }
 
-function renderFuture(future, current) {
-    const wrapper = document.getElementById("futureWrapper");
+function renderFuture(current) {
     const container = document.getElementById("futureGames");
-    const moreBtn = document.getElementById("futureMoreBtn");
-    if (future.length === 0) { wrapper.style.display = "none"; return; }
-    wrapper.style.display = "block";
     container.innerHTML = "";
+    
+    // Wir filtern alle Spielnummern, die größer als die aktuelle sind
+    const future = Object.keys(spieleDaten)
+        .map(Number)
+        .filter(nr => nr > current)
+        .sort((a, b) => a - b); // Nächstes Spiel zuerst
+
+    if (future.length === 0) {
+        container.innerHTML = '<div class="game-line" style="opacity:0.5;">Keine weiteren Spiele geplant.</div>';
+        return;
+    }
+
     future.slice(0, futureVisible).forEach(nr => {
+        const daten = spieleDaten[nr] || { p1: "TBA", p2: "TBA" };
         const div = document.createElement("div");
         div.className = "game-line";
-        div.innerHTML = `Spiel ${nr}<br>${spiele[nr]}`;
+        div.style.textAlign = "left";
+        
+        div.innerHTML = `
+            <div style="font-size: 11px; opacity: 0.6; margin-bottom: 5px; font-family: Arial;">RUNDE ${nr}</div>
+            <div style="margin-bottom: 4px;"><b style="width:65px; display:inline-block;">Platz 1:</b> ${daten.p1}</div>
+            <div><b style="width:65px; display:inline-block;">Platz 2:</b> ${daten.p2}</div>
+        `;
         container.appendChild(div);
     });
 
-    moreBtn.style.display = futureVisible < future.length ? "inline-block" : "none";
-        // Klicks
-    moreBtn.onclick = () => {
-        futureVisible += 4;
-        updateSideGames(current);
+    // Button-Logik
+    const moreBtn = document.getElementById("futureMoreBtn");
+    moreBtn.style.display = future.length > futureVisible ? "inline-block" : "none";
+    moreBtn.onclick = () => { futureVisible += 5; updateSideGames(current); };
 
-        // NEU: Wartet kurz, bis die neuen Spiele gezeichnet sind, und scrollt dann
-        setTimeout(() => {
-            window.scrollBy({
-                top: 250, // Scrollt 250 Pixel nach unten
-                behavior: 'smooth'
-            });
-        }, 50);
-    };
-
-
-    let lessBtn = document.getElementById("futureLessBtn") || createLessBtn("futureLessBtn", moreBtn, true);
-    lessBtn.style.display = futureVisible > 4 ? "inline-block" : "none";
-    lessBtn.onclick = () => { futureVisible = 2; updateSideGames(current); scrollToLive(); };
+    // "Weniger anzeigen" Button
+    let lessBtn = document.getElementById("futureLessBtn");
+    if (futureVisible > 5) {
+        if (!lessBtn) lessBtn = createLessBtn("futureLessBtn", moreBtn);
+        lessBtn.style.display = "inline-block";
+        lessBtn.onclick = () => { futureVisible = 2; updateSideGames(current); scrollToLive(); };
+    } else if (lessBtn) {
+        lessBtn.style.display = "none";
+    }
 }
 
 function createLessBtn(id, target, before = false) {
